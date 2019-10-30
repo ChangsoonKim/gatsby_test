@@ -7,13 +7,36 @@ const pages = [
   { id: 3, content: '확실히 어렵네요' },
 ];
 
-export async function createPages({ actions }: CreatePagesArgs) {
+export async function createPages({ actions, graphql }: CreatePagesArgs) {
   const { createPage } = actions;
-  pages.forEach(page => {
+
+  const { data, errors } = await graphql(`
+          {
+            allMarkdownRemark {
+              edges {
+                node {
+                  html
+                  frontmatter {
+                    title
+                  }
+                }
+              }
+            }
+          }
+        `);
+
+  if (errors) {
+    throw errors;
+  }
+
+  data.allMarkdownRemark.edges.forEach(({ node }: any) => {
     createPage({
-      path: page.id.toString(),
-      context: page,
-      component: path.resolve(__dirname, '../templates/PostTemplate.tsx')
+      path: node.frontmatter.title,
+      context: {
+        html: node.html,
+        title: node.frontmatter.title,
+      },
+      component: path.resolve(__dirname, '../templates/PostTemplate.tsx'),
     });
   });
 }
